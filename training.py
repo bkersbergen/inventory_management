@@ -2,10 +2,12 @@ import os
 import sys
 import argparse
 
+from keras.src.layers import GroupNormalization
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 import tensorflow as tf
-import tensorflow_addons as tfa
+# import tf.keras.layers. as tfa
 
 #tf.debugging.set_log_device_placement(True)
 
@@ -76,7 +78,7 @@ class Critic(tf.Module):
   def __call__(self, state):
     #[I, P] --> [I]
     layer_output = self.layer1(state)
-    layer_output = tfa.layers.GroupNormalization(groups = 1)(layer_output) 
+    layer_output = GroupNormalization(groups = 1)(layer_output)
     layer_output = self.activation(layer_output)
     layer_output = tf.nn.dropout(layer_output, self.dropout_prob)
 
@@ -160,7 +162,7 @@ class Env(tf.Module):
   def __call__(self, u):
     #[I, P] --> [I]
     layer_output = self.layer1(state)
-    layer_output = tfa.layers.GroupNormalization(groups = 1)(layer_output) 
+    layer_output = GroupNormalization(groups = 1)(layer_output)
     layer_output = self.activation(layer_output)
     layer_output = tf.nn.dropout(layer_output, self.dropout_prob)
 

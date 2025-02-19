@@ -1,71 +1,101 @@
-# inventory_management
+# Inventory Management with Reinforcement Learning
 
-This code implements few papers about supply chain from the same authors
+This project implements several research papers on supply chain management using reinforcement learning. The goal is to optimize inventory control while considering lead times, stock levels, and replenishment strategies.
 
-1. Scalable multi-product inventory control with lead time constraints using reinforcement learning
+## References
 
-https://link.springer.com/article/10.1007/s00521-021-06129-w
+1. **Scalable Multi-Product Inventory Control with Lead Time Constraints Using Reinforcement Learning**  
+   [Springer Link](https://link.springer.com/article/10.1007/s00521-021-06129-w)
 
-2. Using Reinforcement Learning for a Large Variable-Dimensional Inventory Management Problem
+2. **Using Reinforcement Learning for a Large Variable-Dimensional Inventory Management Problem**  
+   [Conference Website](https://ala2020.vub.ac.be/)  
+   [Paper PDF](https://ala2020.vub.ac.be/papers/ALA2020_paper_5.pdf)
 
-https://ala2020.vub.ac.be/
+3. **Reinforcement Learning for Multi-Product Multi-Node Inventory Management in Supply Chains**  
+   [Arxiv Link](https://arxiv.org/abs/2006.04037)
 
-https://ala2020.vub.ac.be/papers/ALA2020_paper_5.pdf
+## Project Overview
 
-3. Reinforcement Learning for Multi-Product Multi-Node Inventory Management in Supply Chains
+Supply chain optimization has multiple objectives, such as:
+- Maintaining low inventory levels while preventing stockouts
+- Reducing waste by minimizing excess inventory
+- Balancing inventory across multiple products
+- Managing inventory across both stores and warehouses with varying lead times
+- (Potential future extension) Incorporating optimal pricing strategies
 
-https://arxiv.org/abs/2006.04037
+This project approaches inventory optimization as a reinforcement learning problem, specifically using an **actor-critic** framework. Implemented algorithms include:
+- **A2C (Advantage Actor-Critic)**
+- **A2C-mod** (a modified version as suggested in the referenced papers)
+- **PPO (Proximal Policy Optimization)**
 
-Description:
+Currently, only **A2C and PPO** are functional. A baseline supply chain algorithm for performance comparison has not been implemented yet.
 
-Supply chain can have many objectives to achieve optimal metrics: lowest possible inventory level without having stockouts. This reduces amount of thrown away items. Another objective is to make quantity of items across all products as even as possible. Other problems with solution in the paper is addressing both stores and warehouses and different lead times. I have not coded this yet. Beside this, I saw in other papers could be some optimal prices in the store.   
+## Training Pipeline
 
-This is reinforcement learnig problem and it is implemented in a actor critic style with separate networks. I coded A2C, A2C-mod as suggested in the paper and PPO. Actor is a policy network and prediction uses just it.
+### Step 1: Download the Instacart Dataset
 
-Notes:
+The dataset used in this project is the **Instacart Online Grocery Shopping Dataset (2017)**. It can be accessed from:
+- [Instacart Dataset](https://www.instacart.com/datasets/grocery-shopping-2017)
+- [Kaggle Competition](https://www.kaggle.com/c/instacart-market-basket-analysis/data)
 
-- Only A2C and PPO algorithms work for now
-- I have not implemented any baseline supply chain algorith to compare performance
+### Step 2: Prepare Training and Test Data
 
-Training steps:
-
-1. Download Instacart dataset
-
-this is just what instacart asks to put regarding dataset.
-
-“The Instacart Online Grocery Shopping Dataset 2017”, Accessed from https://www.instacart.com/datasets/grocery-shopping-2017 on Retrieved 08-2018
-
-please follow papers, dataset is available as part of Kaggle competition at https://www.kaggle.com/c/instacart-market-basket-analysis/data
-
-2. Prepare tfrecords train and test data
-
+Run the following command to preprocess the data into TFRecords format:
+```bash
 python prepare_data.py
+```
 
-There problem with this data, it is hard to make is reasonably even. Starting date of customer shopping sequence is random, but aligned with day of week. Next dates are calculated using days between shopping. First, random date is picked from dates interval. Once all dates are calculated, volume of all shopping reaches some maximum and then does down. This is how training data looks like. I selected grocery only items from products list. 
+#### Data Preparation Notes:
+- The dataset has an uneven distribution of shopping sequences.
+- The start date for each customer's shopping sequence is randomly assigned but aligned with the day of the week.
+- Subsequent shopping dates are computed based on observed inter-shopping durations.
+- Training data follows a demand curve where purchase volume peaks and then declines over time.
+- The dataset is filtered to include only grocery items.
 
-3. Training
+### Step 3: Training
 
-When training see critic and actor and reward convergence. Also, at the end, replenishment average should be close to the sales 0.1 == 0.1
-
+Train the reinforcement learning model using:
+```bash
 python training.py --action=TRAIN --output_dir checkpoints
+```
+Key points to monitor during training:
+- Convergence of the actor and critic networks
+- Reward stabilization
+- Replenishment levels aligning closely with sales (e.g., sales of 0.1 should match replenishment of 0.1)
 
-Waste parameter is what pushes inventory level down, so I am still not sure what the value is right, but for algorithms to work I put 0.20 so this drives invetory down to 15% 
+#### Inventory Control Considerations:
+- The **waste parameter** controls downward pressure on inventory levels. Currently set to **0.20**, which stabilizes inventory at **~15%**.
 
-Rewards: 
-![output sample](samples/curves/data_prep-a2c_cell_1_output_0.png "A2C rewards")
+Example reward curve:
+![A2C Rewards](samples/curves/data_prep-a2c_cell_1_output_0.png)
 
-Inventory: 
-![output sample](samples/curves/data_prep-a2c_cell_6_output_0.png "A2C rewards")
-4. Evaluation
+Inventory tracking example:
+![Inventory Levels](samples/curves/data_prep-a2c_cell_6_output_0.png)
 
-I did't evaluate. But see this output: there shouldn't be stockouts or overstocks and inventory should be as low ax possible. This is how it looks for a sample product:
+### Step 4: Evaluation
 
-![output sample](samples/curves/data_prep_cell_12_output_0.png "Sample inventory and replenishment dynamics")
+Evaluation has not been fully implemented yet. However, key evaluation metrics should include:
+- No excessive stockouts or overstocks
+- Inventory levels minimized while maintaining demand fulfillment
 
-i5. Prediction
+Sample inventory and replenishment dynamics:
+![Inventory and Replenishment](samples/curves/data_prep_cell_12_output_0.png)
 
+### Step 5: Prediction
+
+To generate predictions, run:
+```bash
 time python training.py --action=PREDICT --output_dir checkpoints
+```
+This will generate an `output.csv` file containing key inventory metrics for each timestep. Tracking a single product over time should exhibit stable replenishment patterns similar to this:
+![Prediction Output](samples/curves/data_prep_cell_12_output_0.png)
 
-This will produce output.csv with metrics for each timestep. if taking one product and following it over time, metrics will look like this
+## Future Work
+- Implement baseline supply chain algorithms for benchmarking
+- Evaluate model performance with additional metrics
+- Explore reinforcement learning for dynamic pricing optimization
+- Extend the model to handle multi-node supply chains with varied lead times
 
-![output sample](samples/curves/data_prep_cell_12_output_0.png "Sample inventory and replenishment dynamics")
+---
+This project serves as an initial proof-of-concept for reinforcement learning-based inventory management, with future improvements planned to enhance its robustness and applicability.
+
